@@ -1,35 +1,35 @@
 import 'dart:io';
-import 'dart:async';
 
-import 'multicast_service.dart';
+import 'discovery.dart';
 
-class SocketManager {
-  final _multicast = MulticastService();
+class SocketService {
+  final _discovery = Discovery();
   final Set<Socket> _clients = <Socket>{};
   late final ServerSocket _server;
 
-  ServerSocket get server => _server;
+  int get port => _server.port;
 
-  Future<void> start(String roomName) async {
-    // 等待服务器绑定到一个随机端口
+  late final String roomName;
+
+  SocketService(this.roomName);
+
+  Future<void> start() async {
+    // 使用随机端口创建服务器
     _server = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
 
-    // 监听新的连接
+    // 监听客户端连接
     _server.listen((Socket clientSocket) {
-      // 当新的Socket连接时，将其添加到客户端列表中
+      // 客户端发起连接请求时，将其添加到列表
       _clients.add(clientSocket);
 
-      // 监听来自客户端的消息
+      // 监听每个客户端
       clientSocket.listen(
         (data) {
-          // 广播消息给所有已连接的客户端
+          // 如果有消息，转发消息给所有已连接的客户端
           _broadcastMessage(data);
         },
-        onError: (error) {
-          // print('Socket error: $error');
-        },
         onDone: () {
-          // 当Socket关闭时，从列表中移除
+          // 当客户端断开时，从列表中移除
           _clients.remove(clientSocket);
           clientSocket.destroy();
         },
@@ -37,8 +37,8 @@ class SocketManager {
       );
     });
 
-    // 开始广播房间信息
-    _multicast.startSendingMessage(
+    // 开始定时广播房间信息
+    _discovery.startSending(
       '$roomName,${_server.port}',
       const Duration(seconds: 1),
     );
@@ -52,12 +52,14 @@ class SocketManager {
     }
   }
 
-  void stop(String roomName) {
-    _multicast.stopSendingMessages();
+  void stop() {
+    // 停止定时发送
+    _discovery.stopSending();
 
     // 发送停止信息
-    _multicast.sendMessage('$roomName,stop');
+    _discovery.sendMessage('$roomName,stop');
 
+    _clients.clear();
     _server.close();
   }
 }
