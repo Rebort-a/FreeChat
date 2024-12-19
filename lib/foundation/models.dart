@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 class RoomInfo {
-  String name;
-  String address;
-  int port;
+  final String name;
+  final String address;
+  final int port;
   RoomInfo({required this.name, required this.address, required this.port});
 }
 

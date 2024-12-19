@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../foundation/models.dart';
 import '../middleware/home_mannger.dart';
 
 class HomePage extends StatelessWidget {
@@ -21,9 +22,7 @@ class HomePage extends StatelessWidget {
       actions: [
         IconButton(
           icon: const Icon(Icons.add),
-          onPressed: () {
-            _homeManager.showCreateRoomDialog();
-          },
+          onPressed: _homeManager.showCreateRoomDialog,
         ),
       ],
     );
@@ -33,10 +32,17 @@ class HomePage extends StatelessWidget {
     return ListView(
       children: [
         _buildDialog(),
-        _buildMyRoomTitle(),
-        _buildMyRooms(),
-        _buildOtherRoomTitle(),
-        _buildOtherRooms(),
+        _buildSectionTitle('The rooms you created',
+            _homeManager.createdRoomsCount, _homeManager.stopAllCreatedRooms),
+        _buildRoomList(
+            _homeManager.createdRooms,
+            _homeManager.createdRoomsCount,
+            _homeManager.showJoinRoomDialog,
+            _homeManager.stopCreatedRoom),
+        _buildSectionTitle(
+            'The other rooms', _homeManager.othersRoomsCount, null),
+        _buildRoomList(_homeManager.othersRooms, _homeManager.othersRoomsCount,
+            _homeManager.showJoinRoomDialog, null),
       ],
     );
   }
@@ -53,106 +59,73 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildMyRoomTitle() {
+  Widget _buildSectionTitle(String title, ValueNotifier<int> countListenable,
+      VoidCallback? onStopAll) {
     return ValueListenableBuilder<int>(
-      valueListenable: _homeManager.createdRoomsCount,
+      valueListenable: countListenable,
       builder: (context, value, child) {
-        return value == 0
-            ? const SizedBox.shrink()
-            : ListTile(
-                leading: const Icon(Icons.chevron_right),
-                title: Text(
-                  'The rooms you created',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                trailing: value > 1
-                    ? TextButton(
-                        onPressed: _homeManager.stopAllCreatedRooms,
-                        child: const Text('STOP ALL'),
-                      )
-                    : null,
-              );
+        if (value == 0) return const SizedBox.shrink();
+        return ListTile(
+          leading: const Icon(Icons.chevron_right),
+          title: Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          trailing: onStopAll != null && value > 1
+              ? TextButton(
+                  onPressed: onStopAll,
+                  child: const Text('STOP ALL'),
+                )
+              : null,
+        );
       },
     );
   }
 
-  Widget _buildMyRooms() {
+  Widget _buildRoomList(
+      List<RoomInfo> rooms,
+      ValueNotifier<int> countListenable,
+      Function(RoomInfo) onJoin,
+      Function(int)? onStop) {
     return ValueListenableBuilder<int>(
-      valueListenable: _homeManager.createdRoomsCount,
+      valueListenable: countListenable,
       builder: (context, value, child) {
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: value,
           itemBuilder: (context, index) {
-            final room = _homeManager.createdRooms[index];
-            return Card(
-              child: ListTile(
-                leading: const Icon(Icons.wifi),
-                title: Text(room.name),
-                subtitle: Text('${room.address}:${room.port}'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    TextButton(
-                      onPressed: () => _homeManager.showJoinRoomDialog(room),
-                      child: const Text('JOIN'),
-                    ),
-                    TextButton(
-                      onPressed: () => _homeManager.stopCreatedRoom(index),
-                      child: const Text('STOP'),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            final room = rooms[index];
+            return _buildRoomTile(
+                room, onJoin, onStop != null ? () => onStop(index) : null);
           },
         );
       },
     );
   }
 
-  Widget _buildOtherRoomTitle() {
-    return ValueListenableBuilder<int>(
-      valueListenable: _homeManager.othersRoomsCount,
-      builder: (context, value, child) {
-        return value == 0
-            ? const SizedBox.shrink()
-            : ListTile(
-                leading: const Icon(Icons.chevron_right),
-                title: Text(
-                  'The other rooms',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              );
-      },
-    );
-  }
-
-  Widget _buildOtherRooms() {
-    return ValueListenableBuilder<int>(
-      valueListenable: _homeManager.othersRoomsCount,
-      builder: (context, value, child) {
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: value,
-          itemBuilder: (context, index) {
-            final room = _homeManager.othersRooms[index];
-            return Card(
-              child: ListTile(
-                leading: const Icon(Icons.wifi),
-                title: Text(room.name),
-                subtitle: Text('${room.address}:${room.port}'),
-                trailing: TextButton(
-                  onPressed: () => _homeManager.showJoinRoomDialog(room),
-                  child: const Text('JOIN'),
-                ),
+  Widget _buildRoomTile(
+      RoomInfo room, Function(RoomInfo) onJoin, VoidCallback? onStop) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.wifi),
+        title: Text(room.name),
+        subtitle: Text('${room.address}:${room.port}'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            TextButton(
+              onPressed: () => onJoin(room),
+              child: const Text('JOIN'),
+            ),
+            if (onStop != null)
+              TextButton(
+                onPressed: onStop,
+                child: const Text('STOP'),
               ),
-            );
-          },
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }

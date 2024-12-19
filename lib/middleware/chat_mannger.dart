@@ -8,12 +8,15 @@ import '../foundation/models.dart';
 
 class ChatManager {
   late final Socket _socket;
+
   final AlwaysValueNotifier<void Function(BuildContext)> showPage =
       AlwaysValueNotifier((BuildContext context) {});
+
   final ValueNotifier<String> messageRecords =
       ValueNotifier<String>(' '.padRight(1000));
 
   final textController = TextEditingController();
+
   final RoomInfo roomInfo;
   final String userName;
 
@@ -35,7 +38,7 @@ class ChatManager {
         },
         onDone: () {
           // 连接关闭
-          _socket.destroy();
+          _stopConnection();
         },
         onError: (error) {
           // 处理错误
@@ -50,12 +53,6 @@ class ChatManager {
     }
   }
 
-  void stop() {
-    _stopKeyboard();
-    textController.dispose();
-    _socket.destroy();
-  }
-
   void sendMessage() {
     final text = textController.text;
     if (text.isEmpty) {
@@ -68,7 +65,13 @@ class ChatManager {
 
   void leaveRoom() {
     _socket.add(utf8.encode('${' '.padRight(64)}$userName left the room\n'));
-    stop();
+    _stopConnection();
+  }
+
+  void _stopConnection() {
+    _stopKeyboard();
+    textController.dispose();
+    _socket.destroy();
     showPage.value = (BuildContext context) {
       Navigator.of(context).pop();
     };

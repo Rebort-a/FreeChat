@@ -4,9 +4,10 @@ import '../foundation/discovery.dart';
 import '../foundation/models.dart';
 import '../foundation/socket_service.dart';
 import '../upper/chat_page.dart';
+import '../upper/dialog.dart';
 
 class CreatedRoomInfo extends RoomInfo {
-  SocketService server;
+  final SocketService server;
 
   CreatedRoomInfo(
       {required super.name,
@@ -98,42 +99,13 @@ class HomeMannger {
 
   void showCreateRoomDialog() {
     showPage.value = (BuildContext context) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          String roomName = 'Default Room';
-          return AlertDialog(
-            title: const Center(child: Text('Create')),
-            content: TextField(
-              onChanged: (value) {
-                roomName = value;
-              },
-              decoration: const InputDecoration(hintText: 'Enter name'),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('Cancel'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: const Text('Create'),
-                onPressed: () {
-                  _createRoom(roomName);
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
+      DialogCollection.showCreateRoomDialog(
+          context: context, onConfirm: _createRoom);
     };
   }
 
   void _joinRoom(RoomInfo room, String userName, BuildContext context) {
     if (userName.isNotEmpty) {
-      Navigator.of(context).pop();
       Navigator.of(context).push(MaterialPageRoute(
         builder: (context) => ChatPage(roomInfo: room, userName: userName),
       ));
@@ -142,40 +114,8 @@ class HomeMannger {
 
   void showJoinRoomDialog(RoomInfo room) {
     showPage.value = (BuildContext context) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          String userName = 'default';
-          return AlertDialog(
-            title: const Center(child: Text('Join')),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                const Text('Enter your name:'),
-                TextField(
-                  onChanged: (value) {
-                    userName = value;
-                  },
-                ),
-              ],
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('Cancel'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: const Text('Join'),
-                onPressed: () {
-                  _joinRoom(room, userName, context);
-                },
-              ),
-            ],
-          );
-        },
-      );
+      DialogCollection.showJoinRoomDialog(
+          context: context, room: room, onConfirm: _joinRoom);
     };
   }
 }
