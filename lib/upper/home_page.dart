@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../foundation/models.dart';
-import '../middleware/home_mannger.dart';
+import '../middleware/home_manager.dart';
 
 class HomePage extends StatelessWidget {
-  final _homeManager = HomeMannger();
+  final _homeManager = HomeManager();
 
   HomePage({super.key});
 
@@ -32,17 +32,13 @@ class HomePage extends StatelessWidget {
     return ListView(
       children: [
         _buildDialog(),
-        _buildSectionTitle('The rooms you created',
-            _homeManager.createdRoomsCount, _homeManager.stopAllCreatedRooms),
+        _buildSectionTitle('The rooms you created', _homeManager.createdRooms,
+            _homeManager.stopAllCreatedRooms),
+        _buildRoomList(_homeManager.createdRooms,
+            _homeManager.showJoinRoomDialog, _homeManager.stopCreatedRoom),
+        _buildSectionTitle('The other rooms', _homeManager.othersRooms, null),
         _buildRoomList(
-            _homeManager.createdRooms,
-            _homeManager.createdRoomsCount,
-            _homeManager.showJoinRoomDialog,
-            _homeManager.stopCreatedRoom),
-        _buildSectionTitle(
-            'The other rooms', _homeManager.othersRoomsCount, null),
-        _buildRoomList(_homeManager.othersRooms, _homeManager.othersRoomsCount,
-            _homeManager.showJoinRoomDialog, null),
+            _homeManager.othersRooms, _homeManager.showJoinRoomDialog, null),
       ],
     );
   }
@@ -59,19 +55,19 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title, ValueNotifier<int> countListenable,
-      VoidCallback? onStopAll) {
-    return ValueListenableBuilder<int>(
+  Widget _buildSectionTitle(String title,
+      ListNotifier<RoomInfo> countListenable, VoidCallback? onStopAll) {
+    return ValueListenableBuilder<List<RoomInfo>>(
       valueListenable: countListenable,
       builder: (context, value, child) {
-        if (value == 0) return const SizedBox.shrink();
+        if (value.isEmpty) return const SizedBox.shrink();
         return ListTile(
           leading: const Icon(Icons.chevron_right),
           title: Text(
             title,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          trailing: onStopAll != null && value > 1
+          trailing: onStopAll != null && value.length > 1
               ? TextButton(
                   onPressed: onStopAll,
                   child: const Text('STOP ALL'),
@@ -82,20 +78,17 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildRoomList(
-      List<RoomInfo> rooms,
-      ValueNotifier<int> countListenable,
-      Function(RoomInfo) onJoin,
-      Function(int)? onStop) {
-    return ValueListenableBuilder<int>(
+  Widget _buildRoomList(ListNotifier<RoomInfo> countListenable,
+      Function(RoomInfo) onJoin, Function(int)? onStop) {
+    return ValueListenableBuilder<List<RoomInfo>>(
       valueListenable: countListenable,
       builder: (context, value, child) {
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: value,
+          itemCount: value.length,
           itemBuilder: (context, index) {
-            final room = rooms[index];
+            final room = value[index];
             return _buildRoomTile(
                 room, onJoin, onStop != null ? () => onStop(index) : null);
           },
@@ -108,7 +101,7 @@ class HomePage extends StatelessWidget {
       RoomInfo room, Function(RoomInfo) onJoin, VoidCallback? onStop) {
     return Card(
       child: ListTile(
-        leading: const Icon(Icons.wifi),
+        leading: const Icon(Icons.home),
         title: Text(room.name),
         subtitle: Text('${room.address}:${room.port}'),
         trailing: Row(

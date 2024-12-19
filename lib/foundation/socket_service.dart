@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'discovery.dart';
+import 'models.dart';
 
 class SocketService {
+  static const String split = '^&*￥';
   final _discovery = Discovery();
   final Set<Socket> _clients = <Socket>{};
   late final ServerSocket _server;
@@ -39,7 +41,7 @@ class SocketService {
 
     // 开始定时广播房间信息
     _discovery.startSending(
-      '$roomName,${_server.port}',
+      '$roomName$split${_server.port}',
       const Duration(seconds: 1),
     );
   }
@@ -57,7 +59,14 @@ class SocketService {
     _discovery.stopSending();
 
     // 发送停止信息
-    _discovery.sendMessage('$roomName,stop');
+    _discovery.sendMessage('$roomName${split}stop');
+
+    _broadcastMessage(ChatMessage(
+            timestamp: DateTime.now().toIso8601String(),
+            source: 'system',
+            type: MessageType.notify,
+            content: 'The room has been closed')
+        .toSocketData());
 
     _clients.clear();
     _server.close();

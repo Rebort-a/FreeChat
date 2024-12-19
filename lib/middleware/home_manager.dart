@@ -16,71 +16,67 @@ class CreatedRoomInfo extends RoomInfo {
       required this.server});
 }
 
-class HomeMannger {
+class HomeManager {
   final _discovery = Discovery();
 
-  final AlwaysValueNotifier<void Function(BuildContext)> showPage =
-      AlwaysValueNotifier((BuildContext context) {});
+  final AlwaysNotifier<void Function(BuildContext)> showPage =
+      AlwaysNotifier((BuildContext context) {});
 
-  final List<CreatedRoomInfo> createdRooms = [];
-  final List<RoomInfo> othersRooms = [];
+  final ListNotifier<CreatedRoomInfo> createdRooms = ListNotifier([]);
+  final ListNotifier<RoomInfo> othersRooms = ListNotifier([]);
 
-  final ValueNotifier<int> createdRoomsCount = ValueNotifier(0);
-  final ValueNotifier<int> othersRoomsCount = ValueNotifier(0);
-
-  HomeMannger() {
+  HomeManager() {
     _discovery.startReceive(_handleReceivedMessage);
   }
 
   void stop() {
     _discovery.stopReceive();
     stopAllCreatedRooms();
+    _clearOtherRooms();
+  }
+
+  void _clearOtherRooms() {
     othersRooms.clear();
-    othersRoomsCount.value = othersRooms.length;
   }
 
   void _handleReceivedMessage(String address, String message) {
     // Parse the message to extract room name and port
     // Example message format: "RoomName,stop" "RoomName,1234"
-    final parts = message.split(',');
+    final parts = message.split(SocketService.split);
     if (parts.length == 2) {
       if (parts[1] == 'stop') {
         othersRooms.removeWhere(
             (room) => room.name == parts[0] && room.address == address);
-        othersRoomsCount.value = othersRooms.length;
       } else {
         int port = int.parse(parts[1]);
         RoomInfo newRoom =
             RoomInfo(name: parts[0], address: address, port: port);
-        bool isMyRoom = createdRooms.any(
+        bool isMyRoom = createdRooms.value.any(
             (room) => room.name == newRoom.name && room.port == newRoom.port);
 
-        bool isOtherRoom = othersRooms.any((room) =>
+        bool isOtherRoom = othersRooms.value.any((room) =>
             room.name == newRoom.name &&
             room.address == newRoom.address &&
             room.port == newRoom.port);
 
         if ((!isMyRoom) && (!isOtherRoom)) {
           othersRooms.add(newRoom);
-          othersRoomsCount.value = othersRooms.length;
         }
       }
     }
   }
 
   void stopAllCreatedRooms() {
-    for (var room in createdRooms) {
+    for (var room in createdRooms.value) {
       room.server.stop();
     }
     createdRooms.clear();
-    createdRoomsCount.value = createdRooms.length;
   }
 
   void stopCreatedRoom(int index) {
-    var room = createdRooms[index];
+    var room = createdRooms.value[index];
     room.server.stop();
     createdRooms.removeAt(index);
-    createdRoomsCount.value = createdRooms.length;
   }
 
   Future<void> _createRoom(String roomName) async {
@@ -93,8 +89,6 @@ class HomeMannger {
         address: 'localhost',
         port: server.port,
         server: server));
-
-    createdRoomsCount.value = createdRooms.length;
   }
 
   void showCreateRoomDialog() {

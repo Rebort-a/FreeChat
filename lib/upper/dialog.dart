@@ -3,21 +3,24 @@ import 'package:flutter/material.dart';
 import '../foundation/models.dart';
 
 class DialogCollection {
-  static void showCreateRoomDialog({
+  static void showDialogTemplate({
     required BuildContext context,
-    required Function(String roomName) onConfirm,
+    required String title,
+    required String hintText,
+    required String confirmButtonText,
+    required Function(String input) onConfirm,
   }) {
-    String roomName = 'Default Room';
+    String input = '';
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Center(child: Text('Create')),
+          title: Center(child: Text(title)),
           content: TextField(
             onChanged: (value) {
-              roomName = value;
+              input = value;
             },
-            decoration: const InputDecoration(hintText: 'Enter name'),
+            decoration: InputDecoration(hintText: hintText),
           ),
           actions: <Widget>[
             TextButton(
@@ -27,15 +30,30 @@ class DialogCollection {
               },
             ),
             TextButton(
-              child: const Text('Create'),
+              child: Text(confirmButtonText),
               onPressed: () {
-                Navigator.of(context).pop();
-                onConfirm(roomName);
+                if (input.isNotEmpty) {
+                  Navigator.of(context).pop();
+                  onConfirm(input);
+                }
               },
             ),
           ],
         );
       },
+    );
+  }
+
+  static void showCreateRoomDialog({
+    required BuildContext context,
+    required Function(String roomName) onConfirm,
+  }) {
+    showDialogTemplate(
+      context: context,
+      title: 'Create',
+      hintText: 'Enter room name',
+      confirmButtonText: 'Create',
+      onConfirm: onConfirm,
     );
   }
 
@@ -45,40 +63,12 @@ class DialogCollection {
     required Function(RoomInfo room, String userName, BuildContext context)
         onConfirm,
   }) {
-    String userName = 'default';
-    showDialog(
+    showDialogTemplate(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Center(child: Text('Join')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Text('Enter your name:'),
-              TextField(
-                onChanged: (value) {
-                  userName = value;
-                },
-              ),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Join'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                onConfirm(room, userName, context);
-              },
-            ),
-          ],
-        );
-      },
+      title: 'Join',
+      hintText: 'Enter user name',
+      confirmButtonText: 'Join',
+      onConfirm: (userName) => onConfirm(room, userName, context),
     );
   }
 }
